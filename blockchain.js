@@ -32,6 +32,7 @@ class Blockchain {
     //3.新增的区块以及先前整个区块链要检验是否合法，若合法，将其新增到链上
     if(this.isValidateBlock(newBlock) && this.isValidateChain()){
       this.blockchain.push(newBlock);
+      return newBlock;
     } else {
       console.log('Error, Invalid Block: ', newBlock);
     }
@@ -107,4 +108,4 @@ class Blockchain {
   }
 }
 
-
+module.exports = Blockchain;
