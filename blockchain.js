@@ -22,16 +22,20 @@ class Blockchain {
     this.blockchain = [initBlock];  //区块链条
     this.data = []; //区块内容
     this.difficulty = 4; //区块难度，比如要求hash值的前面为4个0才符合条件
+    this.prize = 100;  //矿工每次挖矿成功的奖励
   }
 
-  // 挖矿
-  mine() {
+  // 挖矿，address为矿工的钱包地址
+  mine(address) {
+    this.transfer('0', address, this.prize); // 挖矿结束，矿工奖励
+
     //1.生成新区块
     //2.不停地计算哈希，直到算出符合难度条件的哈希值，然后获得记账权
     const newBlock = this.generateNewBlock();
     //3.新增的区块以及先前整个区块链要检验是否合法，若合法，将其新增到链上
     if(this.isValidateBlock(newBlock) && this.isValidateChain()){
       this.blockchain.push(newBlock);
+      this.data = []; //清空转账信息
       return newBlock;
     } else {
       console.log('Error, Invalid Block: ', newBlock);
@@ -106,6 +110,20 @@ class Blockchain {
     }
     return true;
   }
+
+  // 交易
+  transfer(from, to, amount) {
+    // 签名校验
+    const transObj = { from, to, amount };
+    this.data.push(transObj);
+    return transObj;
+  }
+
+  // 查询余额
+  balance() {
+    
+  }
+
 }
 
 module.exports = Blockchain;
