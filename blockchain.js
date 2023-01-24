@@ -113,6 +113,14 @@ class Blockchain {
 
   // 交易
   transfer(from, to, amount) {
+    if (from!=='0') { //该交易并非挖矿
+      const balance = this.balance(from);
+      if (balance < amount) { //判断余额是否充足
+        console.log('Your balance is not enough!', balance);
+        return false;
+      }
+    }
+
     // 签名校验
     const transObj = { from, to, amount };
     this.data.push(transObj);
@@ -120,8 +128,24 @@ class Blockchain {
   }
 
   // 查询余额
-  balance() {
-    
+  balance(address) {
+    // from to transfer
+    let balance = 0;
+    this.blockchain.forEach(block => {
+      if (!Array.isArray(block.data)) {
+        return; //创世区块
+      }
+      block.data.forEach(trans => {
+        if (address === trans.from) {
+          balance -= trans.amount;
+        }
+        if (address === trans.to) {
+          balance += trans.amount;
+        }
+      });
+    });
+    console.log(balance);
+    return balance;
   }
 
 }

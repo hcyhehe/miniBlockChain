@@ -25,7 +25,9 @@ function formatLog(data) {
 vorpal.command('trans <from> <to> <amount>', '转账').action(function(args, callback) {
   const { from, to, amount } = args;
   const trans = blockchain.transfer(from, to, amount);
-  formatLog(trans);
+  if (trans) {
+    formatLog(trans);
+  }
   callback();  //不加callback，执行完后会退出该命令行
 });
 
@@ -45,6 +47,14 @@ vorpal.command('chain', '查看区块链').action(function(args, callback) {
 vorpal.command('detail <index>', '查看区块详情').action(function(args, callback) {
   const block = blockchain.blockchain[args.index];
   this.log(JSON.stringify(block));
+  callback();
+});
+
+vorpal.command('balance <address>', '查看余额').action(function(args, callback) {
+  const balance = blockchain.balance(args.address);
+  if (balance) {
+    formatLog({address: args.address, balance});
+  }
   callback();
 });
 
