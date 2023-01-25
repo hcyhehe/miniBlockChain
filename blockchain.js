@@ -251,8 +251,8 @@ class Blockchain {
       }
     }
     // 签名校验
-    const sig = rsa.sign({ from, to, amount });
-    const sigTrans = { from, to, amount, sig };
+    const signature = rsa.sign({ from, to, amount });
+    const sigTrans = { from, to, amount, signature };
     this.data.push(sigTrans);
     return sigTrans;
   }
@@ -260,7 +260,8 @@ class Blockchain {
   isValidTransfer(trans) {
     // 是否为合法转账
     // 地址为公钥
-    return rsa.verify(trans, trans.from);
+    const res = rsa.verify(trans, trans.from);
+    return res;
   }
 
   // 查询余额
