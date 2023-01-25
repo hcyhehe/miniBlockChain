@@ -6,6 +6,7 @@
 
 
 const crypto = require('crypto');
+const dgram = require('dgram');
 
 // 创世区块
 const initBlock = {
@@ -23,6 +24,62 @@ class Blockchain {
     this.data = []; //区块内容
     this.difficulty = 4; //区块难度，比如要求hash值的前面为4个0才符合条件
     this.prize = 100;  //矿工每次挖矿成功的奖励
+    this.peers = []; //所有网络节点的信息：address+port
+    this.seed = { address: 'localhost', port: 8001 }; //种子节点
+    this.udp = dgram.createSocket('udp4');
+    this.init();
+  }
+
+  init() {
+    this.bindP2p();
+    this.bindExit();
+  }
+
+  bindP2p() {
+    this.udp.on('message', (data, remote) => {
+      const { address, port } = remote;
+      const action = JSON.parse(data);
+      if (action.type) {
+        this.dispatch(action, {address, port}); //触发对应动作
+      }
+    });
+    this.udp.on('listening', () => {
+      const address = this.udp.address();
+      console.log('[信息] UDP监听完毕：' + address.address + ':' + address.port);
+    });
+    // 区分种子节点和普通节点，种子节点的端口是固定的，普通节点的端口可以是任意的
+    const port = Number(process.argv[2]) || 0;
+    this.startNode(port); //启动节点
+  }
+
+  startNode(port) {
+    this.udp.bind(port);
+    //启动的时候，如果不加端口号参数，则默认为普通节点；如果端口号参数为this.seed.port，则为种子节点
+    if (port !== 8001) {
+      this.send({
+        type: 'newPeer'
+      }, this.seed.port, this.seed.address);
+    }
+  }
+
+  send(message, port, host) {
+    this.udp.send(JSON.stringify(message), port, host);
+  }
+
+  dispatch(action, remote) { //处理接受到的消息
+    switch(action.type){
+      case 'newPeer':
+        console.log('有新节点加入', remote);
+        break;
+      default:
+        console.log('未识别action');
+    }
+  }
+
+  bindExit() {
+    process.on('exit', () => {
+      console.log('[信息] 您已退出该服务，886~');
+    });
   }
 
   // 挖矿，address为矿工的钱包地址
