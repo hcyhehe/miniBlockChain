@@ -25,7 +25,7 @@ class Blockchain {
     this.difficulty = 4; //区块难度，比如要求hash值的前面为4个0才符合条件
     this.prize = 100;  //矿工每次挖矿成功的奖励
     this.peers = []; //所有网络节点的信息：address+port
-    this.seed = { address: 'localhost', port: 8001 }; //种子节点
+    this.seed = { address: '139.9.65.44', port: 8001 }; //种子节点
     this.udp = dgram.createSocket('udp4');
     this.init();
   }
@@ -56,7 +56,7 @@ class Blockchain {
     this.udp.bind(port);
     //启动的时候，如果不加端口号参数，则默认为普通节点；如果端口号参数为this.seed.port，则为种子节点
     if (port !== 8001) {
-      this.send({
+      this.send({ //普通节点向种子节点发送消息
         type: 'newPeer'
       }, this.seed.port, this.seed.address);
     }
