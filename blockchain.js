@@ -4,9 +4,9 @@
 // 4. 挖矿
 // 5. p2p网络
 
-
 const crypto = require('crypto');
 const dgram = require('dgram');
+const rsa = require('./rsa');
 
 // 创世区块
 const initBlock = {
@@ -64,6 +64,7 @@ class Blockchain {
       this.send({ //普通节点向种子节点发送消息
         type: 'newPeer'
       }, this.seed.port, this.seed.address);
+      this.peers.push(this.seed);  //把种子节点加入到网络节点中
     }
   }
 
@@ -87,8 +88,20 @@ class Blockchain {
         //3.告知已有节点，加入了新节点
         this.boardcast({ type: 'sayhi', data: remote });
         //4.告知当前区块链数据
+        this.send({
+          type: 'blockchain',
+          data: JSON.stringify({ 
+            blockchain: this.blockchain, 
+            // trans: this.data 
+          })
+        }, remote.port, remote.address);
         this.peers.push(remote);
         console.log('[信息][种子] 有新节点加入', remote);
+        break;
+      case 'blockchain':
+        let allData = JSON.parse(action.data);
+        let newChain = allData.blockchain;
+        this.replaceChain(newChain);
         break;
       case 'remoteAddress':
         this.remote = action.data; //存储远程消息，退出的时候用
@@ -128,8 +141,10 @@ class Blockchain {
     });
   }
 
-  // 挖矿，address为矿工的钱包地址
+  // 挖矿，其实就是将交易信息打包到区块里面
   mine(address) {
+    this.data = this.data.filter(v => this.isValidTransfer(v)); //过滤不合法的交易信息
+
     this.transfer('0', address, this.prize); // 挖矿结束，矿工奖励
 
     //1.生成新区块
@@ -214,6 +229,18 @@ class Blockchain {
     return true;
   }
 
+  //新链替换老链
+  replaceChain(newChain) {
+    if (newChain.length === 1) { //创世区块不校验
+      return;
+    }
+    if (this.isValidateChain(newChain) && newChain.length > this.blockchain.length) {
+      this.blockchain = JSON.parse(JSON.stringify(newChain));
+    } else {
+      console.log('[错误] 不合法链！');
+    }
+  }
+
   // 交易
   transfer(from, to, amount) {
     if (from!=='0') { //该交易并非挖矿
@@ -223,11 +250,17 @@ class Blockchain {
         return false;
       }
     }
-
     // 签名校验
-    const transObj = { from, to, amount };
-    this.data.push(transObj);
-    return transObj;
+    const sig = rsa.sign({ from, to, amount });
+    const sigTrans = { from, to, amount, sig };
+    this.data.push(sigTrans);
+    return sigTrans;
+  }
+
+  isValidTransfer(trans) {
+    // 是否为合法转账
+    // 地址为公钥
+    return rsa.verify(trans, trans.from);
   }
 
   // 查询余额

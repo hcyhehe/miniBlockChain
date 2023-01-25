@@ -51,11 +51,4 @@ function verify({from, to, amount, signature}, pub) {
 }
 
 
-const trans = {from:'hcy', to:'xixi', amount:100};
-const trans1 = {from:'hcy1', to:'xixi', amount:100};
-const signature = sign(trans);
-trans.signature = signature;
-trans1.signature = signature;
-console.log(trans1);
-const isVerify = verify(trans1, keys.pub);
-console.log(isVerify);
+module.exports = { sign, verify, keys };
