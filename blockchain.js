@@ -25,7 +25,12 @@ class Blockchain {
     this.difficulty = 4; //区块难度，比如要求hash值的前面为4个0才符合条件
     this.prize = 100;  //矿工每次挖矿成功的奖励
     this.peers = []; //所有网络节点的信息：address+port
-    this.seed = { address: '139.9.65.44', port: 8001 }; //种子节点
+    this.seed = { //种子节点
+      // address: '139.9.65.44',
+      address: 'localhost',
+      port: 8001 
+    };
+    this.remote = {};
     this.udp = dgram.createSocket('udp4');
     this.init();
   }
@@ -65,15 +70,56 @@ class Blockchain {
   send(message, port, host) {
     this.udp.send(JSON.stringify(message), port, host);
   }
+  boardcast(action) { //广播所有节点
+    this.peers.forEach(v => {
+      this.send(action, v.port, v.address);
+    });
+  }
 
   dispatch(action, remote) { //处理接受到的消息
     switch(action.type){
       case 'newPeer':
-        console.log('有新节点加入', remote);
+        //种子节点要做的事情：
+        //1.告知种子节点的ip和port
+        this.send({type: 'remoteAddress', data: remote}, remote.port, remote.address);
+        //2.当前全部节点的列表
+        this.send({type: 'peerList', data: this.peers}, remote.port, remote.address);
+        //3.告知已有节点，加入了新节点
+        this.boardcast({ type: 'sayhi', data: remote });
+        //4.告知当前区块链数据
+        this.peers.push(remote);
+        console.log('[信息][种子] 有新节点加入', remote);
+        break;
+      case 'remoteAddress':
+        this.remote = action.data; //存储远程消息，退出的时候用
+        break;
+      case 'peerList': //节点列表
+        const newPeers = action.data;
+        this.addPeers(newPeers);
+        break;
+      case 'sayhi':
+        const remotePeer = action.data;
+        this.peers.push(remotePeer);
+        console.log('[信息][普通] 有新节点加入');
+        this.send({type:'hi', data:'hi'}, remotePeer.port, remotePeer.address);
+        break;
+      case 'hi':
+        console.log(`来自节点${remote.address}:${remote.port}的信息: ${action.data}`);
         break;
       default:
         console.log('未识别action');
     }
+  }
+
+  isEqualPeer(peer1, peer2) {
+    return peer1.address==peer2.address && peer1.port===peer2.port;
+  }
+  addPeers(peers) {
+    peers.forEach(peer => {
+      if (!this.peers.find(v => this.isEqualPeer(peer, v))) { //节点去重
+        this.peers.push(peer);
+      }
+    });
   }
 
   bindExit() {
