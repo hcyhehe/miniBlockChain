@@ -10,7 +10,8 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "node index"
+    "start": "node index",
+    "lint": "eslint --fix --ext .js ."
   },
   "author": "HCY",
   "license": "ISC"

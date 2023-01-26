@@ -26,8 +26,8 @@ class Blockchain {
     this.prize = 100;  //矿工每次挖矿成功的奖励
     this.peers = []; //所有网络节点的信息：address+port
     this.seed = { //种子节点
-      // address: '139.9.65.44',
-      address: 'localhost',
+      address: '139.9.65.44',
+      // address: 'localhost',
       port: 8001 
     };
     this.remote = {};
