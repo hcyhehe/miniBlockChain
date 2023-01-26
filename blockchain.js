@@ -119,6 +119,20 @@ class Blockchain {
       case 'hi':
         console.log(`来自节点${remote.address}:${remote.port}的信息: ${action.data}`);
         break;
+      case 'mine': //网络上有节点挖矿成功
+        const lastBlock = this.getLastBlock();
+        if (lastBlock.hash === action.data.hash) { //判断是否重复添加
+          return;
+        }
+        if (this.isValidateBlock(action.data, lastBlock)) { //判断该区块是否合法
+          console.log('[信息] 有节点挖矿成功！');
+          this.blockchain.push(action.data);
+          this.data = []; //清空交易信息
+          this.boardcast({ type: 'mine', data: action.data }); //将挖矿成功的消息广播至其他节点
+        } else {
+          console.log('[信息] 挖矿的区块不合法！');
+        }
+        break;
       default:
         console.log('未识别action');
     }
@@ -154,6 +168,7 @@ class Blockchain {
     if(this.isValidateBlock(newBlock) && this.isValidateChain()){
       this.blockchain.push(newBlock);
       this.data = []; //清空转账信息
+      this.boardcast({ type: 'mine', data: newBlock });
       return newBlock;
     } else {
       console.log('Error, Invalid Block: ', newBlock);
@@ -165,7 +180,7 @@ class Blockchain {
     let { length } = this.blockchain;
     let nonce = 0;
     const index = length;
-    const prevHash = this.getLastBlockchain().hash;
+    const prevHash = this.getLastBlock().hash;
     const timestamp = new Date().getTime();
     const data = this.data;
     const len = this.difficulty;
@@ -179,7 +194,7 @@ class Blockchain {
   }
 
   // 获取最新区块
-  getLastBlockchain() {
+  getLastBlock() {
     return this.blockchain[this.blockchain.length-1];
   }
 
@@ -193,7 +208,7 @@ class Blockchain {
   }
 
   // 校验区块
-  isValidateBlock(newBlock, lastBlock = this.getLastBlockchain()) {
+  isValidateBlock(newBlock, lastBlock = this.getLastBlock()) {
     //1.当前生成区块的index = 上一个区块的index+1
     //2.当前生成区块的timestamp > 上一个区块的timestamp
     //3.当前生成区块的prevHash = 上一个区块的hash
