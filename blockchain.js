@@ -92,7 +92,7 @@ class Blockchain {
           type: 'blockchain',
           data: JSON.stringify({ 
             blockchain: this.blockchain, 
-            // trans: this.data 
+            trans: this.data 
           })
         }, remote.port, remote.address);
         this.peers.push(remote);
@@ -101,7 +101,9 @@ class Blockchain {
       case 'blockchain':
         let allData = JSON.parse(action.data);
         let newChain = allData.blockchain;
+        let newTrans = allData.trans;
         this.replaceChain(newChain);
+        this.replaceTrans(newTrans);
         break;
       case 'remoteAddress':
         this.remote = action.data; //存储远程消息，退出的时候用
@@ -133,17 +135,30 @@ class Blockchain {
           console.log('[信息] 挖矿的区块不合法！');
         }
         break;
+      case 'trans': //网络收到的交易请求
+        if (!this.data.find(v => this.isEqualObj(v, action.data))) { //判断是否有重复的交易
+          console.log('[信息] 有新的交易生成');
+          this.addTrans(action.data);
+          this.boardcast({ type: 'trans', data: action.data });
+        }
+        break;
       default:
         console.log('未识别action');
     }
   }
 
-  isEqualPeer(peer1, peer2) {
-    return peer1.address==peer2.address && peer1.port===peer2.port;
+  isEqualObj(obj1, obj2) { //判断obj是否一致
+    const key1 = Object.keys(obj1);
+    const key2 = Object.keys(obj2);
+    if(key1.length !== key2.length) return;
+    return key1.every(key => obj1[key]===obj2[key]);
   }
+  // isEqualPeer(peer1, peer2) { //判断节点
+  //   return peer1.address==peer2.address && peer1.port===peer2.port;
+  // }
   addPeers(peers) {
     peers.forEach(peer => {
-      if (!this.peers.find(v => this.isEqualPeer(peer, v))) { //节点去重
+      if (!this.peers.find(v => this.isEqualObj(peer, v))) { //节点去重
         this.peers.push(peer);
       }
     });
@@ -258,25 +273,42 @@ class Blockchain {
 
   // 交易
   transfer(from, to, amount) {
+    // 签名校验
+    const timestamp = new Date().getTime();
+    const signature = rsa.sign({ from, to, amount, timestamp });
+    const sigTrans = { from, to, amount, timestamp, signature };
+
     if (from!=='0') { //该交易并非挖矿
       const balance = this.balance(from);
       if (balance < amount) { //判断余额是否充足
         console.log('Your balance is not enough!', balance);
         return false;
       }
+      this.boardcast({ type: 'trans', data: sigTrans });
     }
-    // 签名校验
-    const signature = rsa.sign({ from, to, amount });
-    const sigTrans = { from, to, amount, signature };
+   
     this.data.push(sigTrans);
     return sigTrans;
   }
 
+  // 验证是否为合法转账，地址为公钥
   isValidTransfer(trans) {
-    // 是否为合法转账
-    // 地址为公钥
     const res = rsa.verify(trans, trans.from);
     return res;
+  }
+
+  //添加交易信息
+  addTrans(trans) {
+    if (this.isValidTransfer(trans)) {
+      this.data.push(trans);
+    }
+  }
+
+   //新交易替代老交易
+   replaceTrans(trans) {
+    if (trans.every(v => this.isValidTransfer(v))) {
+      this.data = trans;
+    }
   }
 
   // 查询余额

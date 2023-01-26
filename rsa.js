@@ -36,17 +36,17 @@ function getPub(prv) { //根据私钥计算出公钥
 }
 
 // 2.签名
-function sign({from, to, amount}) {
-  const bufferMsg = Buffer.from(`${from}-${to}-${amount}`); //转账信息拼接后转成二进制
+function sign({from, to, amount, timestamp}) {
+  const bufferMsg = Buffer.from(`${timestamp}-${amount}-${from}-${to}`); //转账信息拼接后转成二进制
   let signature = Buffer.from(keypair.sign(bufferMsg).toDER()).toString('hex');
   return signature;
 }
 
 // 3.验证签名
-function verify({from, to, amount, signature}, pub) {
+function verify({from, to, amount, timestamp, signature}, pub) {
   // 校验是没有私钥的
   const keypairTemp = ec.keyFromPublic(pub, 'hex');
-  const bufferMsg = Buffer.from(`${from}-${to}-${amount}`);
+  const bufferMsg = Buffer.from(`${timestamp}-${amount}-${from}-${to}`);
   return keypairTemp.verify(bufferMsg, signature);
 }
 

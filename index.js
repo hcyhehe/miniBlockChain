@@ -80,6 +80,11 @@ vorpal.command('chat <msg>', '跟其他节点聊天').action(function(args, call
   callback();
 });
 
+vorpal.command('pending', '查看未打包到链里面的交易').action(function(args, callback) {
+  formatLog(blockchain.data);
+  callback();
+});
+
 console.log('welcome to miniBlockChain!');
 vorpal.exec('help');  //打印帮助消息
 vorpal
