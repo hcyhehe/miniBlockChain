@@ -1,8 +1,11 @@
 {
   "name": "miniblockchain",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "miniblockchain": "bin/index.js"
+  },
   "dependencies": {
     "cli-table": "^0.3.11",
     "elliptic": "^6.5.4",
